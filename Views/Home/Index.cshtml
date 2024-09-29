@@ -1,0 +1,126 @@
+﻿@* @using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer *@
+
+@{
+    ViewData["Title"] = "Fake User Data Generator";
+}
+
+<h1 class="text-center pb-3">GENERATE FAKE USER DATA</h1>
+<div class="d-flex justify-content-between p-2 mb-2" style="border: 1px solid #bdbdbd; background-color: #ededed; border-radius: 5px;">
+    <div class="w-25 p-4">
+        <label for="region">Select Region</label>
+        <select id="region" class="form-control" onchange="randomGenerate()">
+            <option value="poland">Poland</option>
+            <option value="usa">USA</option>
+            <option value="georgia">Georgia</option>
+        </select>
+    </div>
+    <div class="w-25 p-4">
+        <label for="errorCount">Number of Errors per Record</label>
+        <div class="d-flex">
+            <input type="range" class="input-group me-2" id="errorSlider" onchange="randomGenerate()" min="0" max="10" step="1" value="0">
+            <input type="number" class="input-group w-25" id="errorCount" onchange="randomGenerate()" min="0" max="1000" value="0">
+        </div>        
+    </div>
+    <div class="w-50 p-4">
+        <label for="seed">Seed</label>
+        <div class=" d-flex">
+            <input type="number" class="input-group me-2 w-25" id="seed" value="0">
+            <button type="button" id="randomSeedBtn" class="btn btn-secondary w-50 me-2" onchange="randomGenerate()">Generate Random Seed</button>
+            <button id="exportBtn" class="btn btn-primary w-25">Export to CSV</button>
+        </div>
+    </div>
+</div>
+
+<table id="userTable" class="table table-bordered">
+    <thead>
+        <tr class="align-content-center text-center">
+            <th>Index</th>
+            <th>Identifier</th>
+            <th>Name</th>
+            <th>Address</th>
+            <th>Phone</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    var page = 0;
+    var loading = false;
+
+    function randomGenerate() {
+        page = 0;
+        $('#userTable tbody').empty();
+        loadRecords();
+        loading = false;
+    }
+
+    function loadRecords() {
+        var pageSize = 20;
+        if (loading == true) pageSize = 10;
+
+        var region = $('#region').val();
+        var seed = $('#seed').val();
+        var errorCount = $('#errorCount').val();
+
+        $.getJSON('/Home/GetUserRecords', { region: region, seed: seed, errorCount: errorCount, page: page, pageSize: pageSize }, function (data) {
+            $.each(data, function (_, record) {
+                $('#userTable tbody').append(
+                    `<tr>
+                        <td class="align-content-center text-center">${record.index}</td>
+                            <td id="identifier">${record.identifier}</td>
+                            <td id="name">${record.name}</td>
+                            <td id="address">${record.address}</td>
+                            <td id="phone">${record.phone}</td>
+                    </tr>`
+                );
+            });
+            loading = false;
+            page++;
+        });
+    }
+
+    // function translateTable() {
+    //     var culture = $('#region').val();
+
+    //     $.ajax({
+    //         url: '/Home/TranslateTable',
+    //         type: 'POST',
+    //         success: function (response) {
+    //             $('#identifier').text(response.identifier);
+    //             $('#name').text(response.name);
+    //             $('#address').text(response.address);
+    //             $('#phone').text(response.phone);
+    //         },
+    //         error: function () {
+    //             alert('Error translating table headers.');
+    //         }
+    //     });
+    // }
+
+    $(window).scroll(function () {
+        if ($(window).scrollTop() + $(window).height() >= $(document).height() - 10) {
+            if (page == 1) page++;
+            loading = true;
+            loadRecords();
+        }
+    });
+
+    $('#errorSlider').on('input', function () {
+        $('#errorCount').val($(this).val());
+    });
+
+    $('#randomSeedBtn').click(function () {
+        $('#seed').val(Math.floor(Math.random() * 10000));
+    });
+
+    $('#exportBtn').click(function () {
+        window.location.href = `/Home/ExportToCSV?region=${$('#region').val()}&seed=${$('#seed').val()}&errorCount=${$('#errorCount').val()}`;
+    });
+
+    // Initial load
+    loadRecords();
+</script>
+

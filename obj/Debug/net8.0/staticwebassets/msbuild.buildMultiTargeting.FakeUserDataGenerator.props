@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\FakeUserDataGenerator.props" />
+</Project>
